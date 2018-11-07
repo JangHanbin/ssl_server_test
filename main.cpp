@@ -68,6 +68,7 @@ int main(int argc, char* argv[])
     if(fd <0)
     {
         cout<<"Failed to open socket."<<endl;
+        ERR_print_errors_fp(stderr);
         return -1;
     }
 
@@ -82,6 +83,7 @@ int main(int argc, char* argv[])
     if(bind(fd, (struct sockaddr*)&s_addr,sizeof(struct sockaddr_in)) < 0)
     {
         cout<<"Failed to socket bind."<<endl;
+        ERR_print_errors_fp(stderr);
         return -1;
     }
 
@@ -93,9 +95,20 @@ int main(int argc, char* argv[])
 
     uint8_t buf[1600];
 
-    while(cfd = accept(cfd,0,0))
+    while(cfd = accept(fd,NULL,0))
     {
+        if(cfd!=-1)
+            cout<<"Accepted!"<<endl;
+
+        if(cfd == -1)
+            cout<<"What the fuck"<<endl;
         BIO *accept_bio =BIO_new_socket(cfd,BIO_CLOSE);
+        if(accept_bio == NULL)
+        {
+            cout<<"Failed to BIO_new_socket"<<endl;
+            ERR_print_errors_fp(stderr);
+            return -1;
+        }
         SSL_set_bio(ssl,accept_bio,accept_bio);
         SSL_accept(ssl);
 
