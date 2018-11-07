@@ -10,6 +10,18 @@
 
 using namespace std;
 
+void usage()
+{
+    cout<<"Usage : ssl_server_test <port>"<<endl;
+}
+
+bool chk_argc(int argc)
+{
+    if(argc !=2)
+        return false;
+
+    return true;
+}
 void init_openssl()
 {
     SSL_load_error_strings();
@@ -19,6 +31,11 @@ void init_openssl()
 }
 int main(int argc, char* argv[])
 {
+    if(!chk_argc(argc))
+    {
+        usage();
+        return -1;
+    }
     init_openssl();
     SSL_CTX *ctx = SSL_CTX_new(SSLv23_server_method());
     if(ctx==NULL)
@@ -28,7 +45,7 @@ int main(int argc, char* argv[])
         return -1;
     }
 
-    SSL *ssl;
+
 
     if(!SSL_CTX_load_verify_locations(ctx,"./dork94.com.crt",NULL))
     {
@@ -37,6 +54,15 @@ int main(int argc, char* argv[])
         return -1;
     }
 
+    SSL *ssl = SSL_new(ctx);
+
+
+    if(SSL_get_verify_result(ssl) != X509_V_OK)
+    {
+        cout<<"Failed to check X509."<<endl;
+        ERR_print_errors_fp(stderr);
+        return -1;
+    }
     /**************************************** Socket Setting*****************************************/
     int fd = socket(AF_INET,SOCK_STREAM,0);
     if(fd <0)
@@ -64,11 +90,18 @@ int main(int argc, char* argv[])
     //Client fd
     int cfd;
     /**************************************** Socket Setting*****************************************/
-    while(ctd = accept(cfd,0,0))
-    {
 
+    uint8_t buf[1600];
+
+    while(cfd = accept(cfd,0,0))
+    {
+        BIO *accept_bio =BIO_new_socket(cfd,BIO_CLOSE);
+        SSL_set_bio(ssl,accept_bio,accept_bio);
+        SSL_accept(ssl);
+
+        ERR_print_errors_fp(stderr);
+        BIO *bio = BIO_pop(accept_bio);
     }
-    BIO *accept_bio = BIO_new_socket()
 
     return 0;
 }
